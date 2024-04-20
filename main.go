@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	const TOKEN string = "YOUR_TOKEN_HERE"
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
@@ -19,7 +20,7 @@ func main() {
 		bot.WithCallbackQueryDataHandler("item", bot.MatchTypePrefix, answer),
 	}
 
-	b, err := bot.New("5559681653:AAFbKDgbqpUHoycIhGEhoYs10uvCEDHtkZg", opts...)
+	b, err := bot.New(TOKEN, opts...)
 
 	if err != nil {
 		log.Fatal(err)
