@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	const TOKEN string = "YOUR_TOKEN_HERE"
+	var TOKEN string = "BOT TOKEN HERE"
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
