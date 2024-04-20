@@ -16,7 +16,7 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
-		bot.WithDefaultHandler(start),
+		bot.WithCallbackQueryDataHandler("item", bot.MatchTypePrefix, answer),
 	}
 
 	b, err := bot.New("5559681653:AAFbKDgbqpUHoycIhGEhoYs10uvCEDHtkZg", opts...)
@@ -59,5 +59,21 @@ func menu(ctx context.Context, b *bot.Bot, update *models.Update) {
 		ChatID:      update.Message.Chat.ID,
 		Text:        "Меню вопросов",
 		ReplyMarkup: inlineKeyboard,
+	})
+}
+
+func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Text:   data.Info[update.CallbackQuery.Data],
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			IsDisabled: bot.True(),
+		},
+		ParseMode: models.ParseModeHTML,
 	})
 }
