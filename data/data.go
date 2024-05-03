@@ -2,11 +2,6 @@ package data
 
 import "github.com/go-telegram/bot/models"
 
-var Greeting = map[string]string{
-	"ru": "Привет, добро пожаловать.",
-	"uz": "Assalomu alaykum, xush kelibsiz.",
-}
-
 var Info = map[string]map[string]string{
 	"ru": {
 		"item_1": `«SCHOOL 21» — образовательный проект Республики Узбекистан.
@@ -113,7 +108,7 @@ var Info = map[string]map[string]string{
 	Следите за новостями, чтобы узнать, когда можно записаться на встречу.`,
 	},
 
-	"uz": {},
+	"uz": {"item_1": "Javob 1"},
 }
 
 var Questions = map[string]map[string]string{
@@ -126,12 +121,51 @@ var Questions = map[string]map[string]string{
 		"item_6": "Даты ближайших отборочных интенсивов",
 		"item_7": "Как записаться на встречу?",
 	},
+	"uz": {
+		"item_1": "Savol 1",
+	},
 }
 
-var Quest_kbd = [][]models.InlineKeyboardButton{
-	{
+var Quest_kbd = map[string][][]models.InlineKeyboardButton{
+	"ru": {
 		{
-			Text: Questions["ru"]["item_1"], CallbackData: "item_1",
+			{
+				Text: Questions["ru"]["item_1"], CallbackData: "item_1",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_2"], CallbackData: "item_2",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_3"], CallbackData: "item_3",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_4"], CallbackData: "item_4",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_5"], CallbackData: "item_5",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_6"], CallbackData: "item_6",
+			},
+		}, {
+			{
+				Text: Questions["ru"]["item_7"], CallbackData: "item_7",
+			},
+		}, {
+			{
+				Text: "Главное меню 🏠", CallbackData: "main_menu",
+			},
+		},
+	},
+
+	"uz": {{
+		{
+			Text: Questions["uz"]["item_1"], CallbackData: "item_1",
 		},
 	}, {
 		{
@@ -139,38 +173,78 @@ var Quest_kbd = [][]models.InlineKeyboardButton{
 		},
 	}, {
 		{
-			Text: Questions["ru"]["item_3"], CallbackData: "item_3",
+			Text: Questions["uz"]["item_3"], CallbackData: "item_3",
 		},
 	}, {
 		{
-			Text: Questions["ru"]["item_4"], CallbackData: "item_4",
+			Text: Questions["uz"]["item_4"], CallbackData: "item_4",
 		},
 	}, {
 		{
-			Text: Questions["ru"]["item_5"], CallbackData: "item_5",
+			Text: Questions["uz"]["item_5"], CallbackData: "item_5",
 		},
 	}, {
 		{
-			Text: Questions["ru"]["item_6"], CallbackData: "item_6",
+			Text: Questions["uz"]["item_6"], CallbackData: "item_6",
 		},
 	}, {
 		{
-			Text: Questions["ru"]["item_7"], CallbackData: "item_7",
+			Text: Questions["uz"]["item_7"], CallbackData: "item_7",
 		},
+	}, {
+		{
+			Text: "Asosiy menu 🏠", CallbackData: "main_menu",
+		},
+	},
 	},
 }
 
-var SelectedLang = map[string]string{
-	"ru": "Выбран русский язык",
-	"uz": "O'zbek tili tanlandi",
-}
-
-var ChangeLang = map[string]string{
-	"ru": "Tilni o'zgartirish",
-	"uz": "Изменить язык",
+var StartMenu = map[string][][]models.InlineKeyboardButton{
+	"ru": {
+		{
+			{
+				Text: "Меню вопросов", CallbackData: "questions",
+			},
+		}, {
+			{
+				Text: "Tilni almashtirish 🇺🇿", CallbackData: "lang_uz",
+			},
+		},
+	},
+	"uz": {
+		{
+			{
+				Text: "Savollar menyusi", CallbackData: "questions",
+			},
+		}, {
+			{
+				Text: "Сменить язык 🇷🇺", CallbackData: "lang_ru",
+			},
+		},
+	},
 }
 
 var ShowMenu = map[string]string{
 	"ru": "Меню вопросов",
 	"uz": "Savollar menyusi",
+}
+
+var HowCanHelp = map[string]string{
+	"ru": "Как я могу вам помочь?",
+	"uz": "Sizga qanday yordam bera olaman?",
+}
+
+var Greeting = map[string]string{
+	"ru": "Привет, добро пожаловать.",
+	"uz": "Assalomu alaykum, xush kelibsiz.",
+}
+
+var QuestionsList = map[string]string{
+	"ru": "Вернуться к списку вопросов ⬅️",
+	"uz": "Savollar menusiga qaytish ⬅️",
+}
+
+var OtherQuestions = map[string]string{
+	"ru": "Остальные вопросы вы можете задать в нашу группу. Наши волонтеры ответят вам сразу 🙂<br> Наша группа: ",
+	"uz": "Boshqa savollaringizni guruhimizga yo'llashingiz mumkin. Sizning savolingizga darhol javob berishadi 🙂",
 }

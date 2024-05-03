@@ -16,16 +16,6 @@ import (
 	"github.com/ulugbek0217/s21-info-bot/users"
 )
 
-// type user struct {
-// 	id      int
-// 	tg_id   string
-// 	name    string
-// 	surname string
-// 	phone   string
-// 	role    string
-// 	lang    string
-// }
-
 var db *pgx.Conn
 
 func main() {
@@ -51,8 +41,9 @@ func main() {
 	}
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, start)
-	b.RegisterHandler(bot.HandlerTypeMessageText, "Показать меню", bot.MatchTypeExact, menu)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "lang", bot.MatchTypePrefix, setLang)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "questions", bot.MatchTypeExact, questions_menu)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "main_menu", bot.MatchTypeExact, main_menu)
 
 	b.Start(ctx)
 }
@@ -65,70 +56,88 @@ func LoadEnv(path string) {
 }
 
 func start(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if users.UserExists(db, update.Message.From.ID) {
+	if !users.UserExists(db, update.Message.From.ID) {
 		users.RegMin(db, update.Message.From.ID)
 	}
 	lang := users.GetLang(db, update.Message.From.ID)
-	kb := &models.ReplyKeyboardMarkup{
-		Keyboard: [][]models.KeyboardButton{
-			{
-				{
-					Text: data.ShowMenu[lang],
-				},
-			},
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   data.Greeting[lang],
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: data.StartMenu[lang],
 		},
-		ResizeKeyboard: true,
-	}
-
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.Message.Chat.ID,
-		Text:        data.Greeting[lang],
-		ReplyMarkup: kb,
 	})
-
-	lang_kb := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{
-					Text: "O'zbek 🇺🇿", CallbackData: "lang_uz",
-				},
-			},
-			{
-				{
-					Text: "Русский 🇷🇺", CallbackData: "lang_ru",
-				},
-			},
-		},
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.Message.Chat.ID,
-		Text:        "Выберите язык",
-		ReplyMarkup: lang_kb,
-	})
 }
 
-func menu(ctx context.Context, b *bot.Bot, update *models.Update) {
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: data.Quest_kbd,
-	}
+func main_menu(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
 
+	lang := users.GetLang(db, update.CallbackQuery.From.ID)
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Text:   data.HowCanHelp[lang],
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: data.StartMenu[lang],
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func questions_menu(ctx context.Context, b *bot.Bot, update *models.Update) {
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: data.Quest_kbd[users.GetLang(db, update.CallbackQuery.From.ID)],
+	}
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
 	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.Message.Chat.ID,
-		Text:        "Меню вопросов",
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+		Text:        data.ShowMenu[users.GetLang(db, update.CallbackQuery.From.ID)], //
 		ReplyMarkup: inlineKeyboard,
 	})
 }
 
 func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
+	user_id := update.CallbackQuery.From.ID
 	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-
+	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-		Text:   data.Info[users.GetLang(db, update.CallbackQuery.From.ID)][update.CallbackQuery.Data],
+		Text:   data.Info[users.GetLang(db, user_id)][update.CallbackQuery.Data],
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text:         data.QuestionsList[users.GetLang(db, user_id)],
+						CallbackData: "questions",
+					},
+				},
+			},
+		},
 		LinkPreviewOptions: &models.LinkPreviewOptions{
 			IsDisabled: bot.True(),
 		},
@@ -138,16 +147,15 @@ func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 func setLang(ctx context.Context, b *bot.Bot, update *models.Update) {
 	var lang string = strings.Split(update.CallbackQuery.Data, "_")[1]
-	_, err := db.Exec(context.Background(), "update users set lang = $1 where tg_id = $2", lang,
-		fmt.Sprintf("%d", update.CallbackQuery.From.ID))
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(lang)
+	tg_id := update.CallbackQuery.From.ID
+	users.SetLang(db, lang, tg_id)
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text:      fmt.Sprintf("Set to %v", lang),
+		Text:      fmt.Sprintf("%s\n%s", data.Greeting[lang], data.HowCanHelp[lang]),
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: data.StartMenu[lang],
+		},
 	})
 }
