@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"log"
 	"os"
 	"os/signal"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/ulugbek0217/s21-info-bot/data"
 	"github.com/ulugbek0217/s21-info-bot/users"
@@ -25,7 +25,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close(context.Background())
+	defer func(db *pgx.Conn, ctx context.Context) {
+		err := db.Close(ctx)
+		if err != nil {
+
+		}
+	}(db, context.Background())
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -42,19 +47,23 @@ func main() {
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, start)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "lang", bot.MatchTypePrefix, setLang)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "questions", bot.MatchTypeExact, questions_menu)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "main_menu", bot.MatchTypeExact, main_menu)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "questions", bot.MatchTypeExact, questionsMenu)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "main_menu", bot.MatchTypeExact, mainMenu)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "ask_group", bot.MatchTypeExact, askGroup)
 
 	b.Start(ctx)
 }
 
+// LoadEnv serves to load the .env files from the given directory
 func LoadEnv(path string) {
 	err := godotenv.Overload(path)
 	if err != nil {
 		log.Fatal("error loading .env: ", err)
+		return
 	}
 }
 
+// start serves as a entry point of the bot
 func start(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !users.UserExists(db, update.Message.From.ID) {
 		users.RegMin(db, update.Message.From.ID)
@@ -65,7 +74,7 @@ func start(ctx context.Context, b *bot.Bot, update *models.Update) {
 		ChatID: update.Message.Chat.ID,
 		Text:   data.Greeting[lang],
 		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: data.StartMenu[lang],
+			InlineKeyboard: data.MainMenu[lang],
 		},
 	})
 	if err != nil {
@@ -73,66 +82,124 @@ func start(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 }
 
-func main_menu(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+// mainMenu returns the main menu buttons
+func mainMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
+	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.DeleteMessage(ctx, &bot.DeleteMessageParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
 	})
-
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	lang := users.GetLang(db, update.CallbackQuery.From.ID)
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text:   data.HowCanHelp[lang],
 		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: data.StartMenu[lang],
+			InlineKeyboard: data.MainMenu[lang],
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 }
 
-func questions_menu(ctx context.Context, b *bot.Bot, update *models.Update) {
+// questionsMenu returns the faq buttons
+func questionsMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
 	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: data.Quest_kbd[users.GetLang(db, update.CallbackQuery.From.ID)],
+		InlineKeyboard: data.QuestKbd[users.GetLang(db, update.CallbackQuery.From.ID)],
 	}
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.DeleteMessage(ctx, &bot.DeleteMessageParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
 	})
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
 		Text:        data.ShowMenu[users.GetLang(db, update.CallbackQuery.From.ID)], //
 		ReplyMarkup: inlineKeyboard,
 	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
-func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
-	user_id := update.CallbackQuery.From.ID
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+// askGroup returns button with group link
+func askGroup(ctx context.Context, b *bot.Bot, update *models.Update) {
+	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
-		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-		MessageID: update.CallbackQuery.Message.Message.ID,
-	})
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-		Text:   data.Info[users.GetLang(db, user_id)][update.CallbackQuery.Data],
+		Text:   data.OtherQuestions[users.GetLang(db, update.CallbackQuery.From.ID)],
 		ReplyMarkup: &models.InlineKeyboardMarkup{
 			InlineKeyboard: [][]models.InlineKeyboardButton{
 				{
 					{
-						Text:         data.QuestionsList[users.GetLang(db, user_id)],
+						Text: data.GroupButton[users.GetLang(db, update.CallbackQuery.From.ID)],
+						URL:  os.Getenv("GROUP_LINK"),
+					},
+				},
+			},
+		},
+	})
+}
+
+// answer serves to send answers for each faq
+func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
+	userId := update.CallbackQuery.From.ID
+	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Text:   data.Info[users.GetLang(db, userId)][update.CallbackQuery.Data],
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text:         data.QuestionsList[users.GetLang(db, userId)],
 						CallbackData: "questions",
 					},
 				},
@@ -143,19 +210,28 @@ func answer(ctx context.Context, b *bot.Bot, update *models.Update) {
 		},
 		ParseMode: models.ParseModeHTML,
 	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
+// setLang serves to set the chosen language for the given user
 func setLang(ctx context.Context, b *bot.Bot, update *models.Update) {
-	var lang string = strings.Split(update.CallbackQuery.Data, "_")[1]
-	tg_id := update.CallbackQuery.From.ID
-	users.SetLang(db, lang, tg_id)
+	var lang = strings.Split(update.CallbackQuery.Data, "_")[1]
+	tgId := update.CallbackQuery.From.ID
+	users.SetLang(db, lang, tgId)
 
-	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
 		Text:      fmt.Sprintf("%s\n%s", data.Greeting[lang], data.HowCanHelp[lang]),
 		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: data.StartMenu[lang],
+			InlineKeyboard: data.MainMenu[lang],
 		},
 	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
