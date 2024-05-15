@@ -36,7 +36,13 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
+		bot.WithMessageTextHandler("/start", bot.MatchTypeExact, start),
 		bot.WithCallbackQueryDataHandler("item", bot.MatchTypePrefix, answer),
+		bot.WithCallbackQueryDataHandler("lang", bot.MatchTypePrefix, setLang),
+		bot.WithCallbackQueryDataHandler("questions", bot.MatchTypeExact, questionsMenu),
+		bot.WithCallbackQueryDataHandler("main_menu", bot.MatchTypeExact, mainMenu),
+		bot.WithCallbackQueryDataHandler("ask_group", bot.MatchTypeExact, askGroup),
+		bot.WithMiddlewares(),
 	}
 
 	b, err := bot.New(os.Getenv("TOKEN"), opts...)
@@ -44,12 +50,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, start)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "lang", bot.MatchTypePrefix, setLang)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "questions", bot.MatchTypeExact, questionsMenu)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "main_menu", bot.MatchTypeExact, mainMenu)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "ask_group", bot.MatchTypeExact, askGroup)
 
 	b.Start(ctx)
 }
@@ -63,7 +63,7 @@ func LoadEnv(path string) {
 	}
 }
 
-// start serves as a entry point of the bot
+// start serves as an entry point of the bot
 func start(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !users.UserExists(db, update.Message.From.ID) {
 		users.RegMin(db, update.Message.From.ID)
