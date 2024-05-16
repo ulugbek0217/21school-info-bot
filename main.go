@@ -42,6 +42,7 @@ func main() {
 		bot.WithCallbackQueryDataHandler("questions", bot.MatchTypeExact, questionsMenu),
 		bot.WithCallbackQueryDataHandler("main_menu", bot.MatchTypeExact, mainMenu),
 		bot.WithCallbackQueryDataHandler("ask_group", bot.MatchTypeExact, askGroup),
+		bot.WithCallbackQueryDataHandler("contacts", bot.MatchTypeExact, contacts),
 		bot.WithMiddlewares(),
 	}
 
@@ -144,6 +145,40 @@ func questionsMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
 		log.Println(err)
 		return
 	}
+}
+
+func contacts(ctx context.Context, b *bot.Bot, update *models.Update) {
+	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	_, err = b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Text:   data.ContactData[users.GetLang(db, update.CallbackQuery.From.ID)],
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text: data.GoBack[users.GetLang(db, update.CallbackQuery.From.ID)], CallbackData: "main_menu",
+					},
+				},
+			},
+		},
+		ParseMode: models.ParseModeHTML,
+	})
 }
 
 // askGroup returns button with group link

@@ -147,7 +147,14 @@ var MainMenu = map[string][][]models.InlineKeyboardButton{
 	"ru": {
 		{
 			{
-				Text: "Меню вопросов", CallbackData: "questions",
+				Text: "Меню вопросов ❓📘", CallbackData: "questions",
+			},
+		}, {
+			{
+				Text: "Мероприятия ✨", CallbackData: "events",
+			},
+			{
+				Text: "Контакты ☎️", CallbackData: "contacts",
 			},
 		}, {
 			{
@@ -158,7 +165,14 @@ var MainMenu = map[string][][]models.InlineKeyboardButton{
 	"uz": {
 		{
 			{
-				Text: "Savollar menyusi", CallbackData: "questions",
+				Text: "Savollar menyusi ❓📘", CallbackData: "questions",
+			},
+		}, {
+			{
+				Text: "Tadbirlar ✨", CallbackData: "events",
+			},
+			{
+				Text: "Kontaktlar ☎️", CallbackData: "contacts",
 			},
 		}, {
 			{
@@ -189,11 +203,21 @@ var QuestionsList = map[string]string{
 }
 
 var OtherQuestions = map[string]string{
-	"ru": "Остальные вопросы вы можете задать в нашу группу. Наши волонтеры ответят вам сразу 🙂\nНажмите кнопку ниже ⬇️",
-	"uz": "Boshqa savollaringizni guruhimizga yo'llashingiz mumkin. Sizning savolingizga darhol javob berishadi 🙂\nQuyidagi tugmani bosing ⬇️",
+	"ru": "Остальные вопросы вы можете задать в нашем чате. Наши волонтеры ответят вам сразу 🙂\nНажмите кнопку ниже ⬇️",
+	"uz": "Boshqa savollaringizni chatimizga yo'llashingiz mumkin. Sizning savolingizga darhol javob berishadi 🙂\nQuyidagi tugmani bosing ⬇️",
 }
 
 var GroupButton = map[string]string{
 	"ru": "Группа",
 	"uz": "Guruh",
+}
+
+var ContactData = map[string]string{
+	"ru": "📞 Наш телефон: +998 93 039 44 42\n\n📧 Наша почта: <a href='mailto:samarqand@21-school.uz'>samarqand@21-school.uz</a>",
+	"uz": "📞 Bizning telefon: +998 93 039 44 42\n\n📧 Elektron pochta manzili: <a href='mailto:samarqand@21-school.uz'>samarqand@21-school.uz</a>",
+}
+
+var GoBack = map[string]string{
+	"ru": "Вернуться назад ⬅️",
+	"uz": "Ortga qaytish ⬅️",
 }
